@@ -1,6 +1,6 @@
-const GAS_URL_KEY='therapytrack_gasurl';
 const LOCAL_DATA_KEY='therapytrack_data';
 const LOCAL_THER_KEY='therapytrack_therapists';
+const GAS_URL='https://script.google.com/macros/s/AKfycbyZUChUcr33Ridb-YW6GW9XEAW8fGcDw-pgY14sDHhVglvdWnC-RIxAPbJHk8-kyLw7/exec';
 const MONTH_NAMES=['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
 const DAY_FULL=['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
 const DAY_NAMES=['Min','Sen','Sel','Rab','Kam','Jum','Sab'];
@@ -38,7 +38,8 @@ const HOLIDAYS=new Set([
   '2026-12-26', // Cuti Bersama Natal
 ]);
 
-let currentYear, currentMonth, data={}, therapists=[], gasUrl=null;
+let currentYear, currentMonth, data={}, therapists=[];
+const gasUrl=GAS_URL;
 
 function toKey(d){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
 function isHoliday(d){return HOLIDAYS.has(toKey(d));}
@@ -101,27 +102,20 @@ function setSyncUI(state,label){
 async function init(){
   const now=new Date();
   currentYear=now.getFullYear(); currentMonth=now.getMonth();
-  gasUrl=localStorage.getItem(GAS_URL_KEY)||null;
   document.getElementById('currentDateBadge').textContent=`${DAY_FULL[now.getDay()]}, ${now.getDate()} ${MONTH_NAMES[now.getMonth()]} ${now.getFullYear()}`;
   setupEventListeners();
-  if(gasUrl){
-    setSyncUI('syncing','Memuat...');
-    try{
-      await loadFromGAS();
-      setSyncUI('connected','Terhubung');
-    }catch(e){
-      loadLocal();
-      setSyncUI('','Offline');
-      showToast('Gagal konek Sheets, pakai data lokal','error');
-    }
-  } else {
+  setSyncUI('syncing','Memuat...');
+  try{
+    await loadFromGAS();
+    setSyncUI('connected','Terhubung');
+  }catch(e){
     loadLocal();
     setSyncUI('','Offline');
+    showToast('Gagal konek Sheets, pakai data lokal','error');
   }
   hideOverlay();
   renderAll();
   setupDailyPicker(now);
-  updateSheetBtn();
 }
 
 function hideOverlay(){
@@ -339,72 +333,6 @@ async function syncNow(){
   btn.classList.remove('spinning');
 }
 
-async function testConnection(){
-  const url=document.getElementById('gasUrlInput').value.trim();
-  const s=document.getElementById('connStatus');
-  if(!url){s.className='conn-status err';s.textContent='⚠ Masukkan URL terlebih dahulu';return;}
-  s.className='conn-status loading';s.textContent='⏳ Mengecek koneksi...';
-  try{
-    const u=new URL(url);u.searchParams.set('action','ping');
-    const r=await fetch(u.toString(),{redirect:'follow'});
-    const j=await r.json();
-    if(j.success){s.className='conn-status ok';s.textContent='✅ Koneksi berhasil! Google Sheets siap digunakan.';}
-    else throw new Error(j.data?.error||'Gagal');
-  }catch(e){s.className='conn-status err';s.textContent='❌ Gagal: '+e.message;}
-}
-
-async function saveGasUrl(){
-  const url=document.getElementById('gasUrlInput').value.trim();
-  if(!url){showToast('Masukkan URL terlebih dahulu','error');return;}
-  gasUrl=url; localStorage.setItem(GAS_URL_KEY,gasUrl);
-  showToast('Menghubungkan...'); setSyncUI('syncing','Memuat...');
-  try{
-    await loadFromGAS();
-    setSyncUI('connected','Terhubung');
-    renderAll(); renderDailyInput(new Date(document.getElementById('dailyDatePicker').value+'T00:00:00'));
-    showToast('Berhasil terhubung ke Google Sheets','success');
-    document.getElementById('btnDisconnect').style.display='inline-flex';
-    document.getElementById('migrateBox').style.display='none';
-    updateSheetBtn();
-    closeModal('modalSpreadsheet');
-  }catch(e){
-    gasUrl=null;localStorage.removeItem(GAS_URL_KEY);
-    setSyncUI('','Offline');showToast('Gagal: '+e.message,'error');
-  }
-}
-
-function disconnect(){
-  if(!confirm('Putus koneksi dari Google Sheets?')) return;
-  gasUrl=null;localStorage.removeItem(GAS_URL_KEY);
-  setSyncUI('','Offline');updateSheetBtn();
-  document.getElementById('btnDisconnect').style.display='none';
-  showToast('Koneksi diputus. Data tetap tersimpan lokal.');
-  closeModal('modalSpreadsheet');
-}
-
-async function migrateLocal(){
-  if(!gasUrl){showToast('Hubungkan spreadsheet dulu','error');return;}
-  const btn=document.getElementById('btnMigrate');
-  btn.textContent='Migrasi...'; btn.disabled=true;
-  let ok=0,fail=0;
-  for(const [date,rec] of Object.entries(data)){
-    for(const [therapist,count] of Object.entries(rec)){
-      try{ await gasGet({action:'saveEntry',date,therapist,count}); ok++; }catch{ fail++; }
-    }
-  }
-  if(therapists.length) await gasGet({action:'saveTherapists',list:JSON.stringify(therapists)});
-  btn.textContent='Migrasikan Data Lokal'; btn.disabled=false;
-  showToast(`Migrasi selesai: ${ok} entri berhasil${fail?', '+fail+' gagal':''}`,'success');
-}
-
-function updateSheetBtn(){
-  if(gasUrl){
-    document.getElementById('gasUrlInput').value=gasUrl;
-    document.getElementById('btnDisconnect').style.display='inline-flex';
-    const hasLocal=Object.keys(data).length>0;
-    document.getElementById('migrateBox').style.display=hasLocal?'flex':'none';
-  }
-}
 
 function exportCSV(){
   const dates=getPeriodDates(currentYear,currentMonth);
@@ -448,13 +376,6 @@ function setupEventListeners(){
   document.getElementById('modalTherapists').onclick=e=>{if(e.target.id==='modalTherapists')closeModal('modalTherapists');};
   document.getElementById('btnAddTherapist').onclick=addTherapist;
   document.getElementById('newTherapistName').onkeydown=e=>{if(e.key==='Enter')addTherapist();};
-  document.getElementById('btnSpreadsheet').onclick=()=>{updateSheetBtn();openModal('modalSpreadsheet');};
-  document.getElementById('modalSpreadsheetClose').onclick=()=>closeModal('modalSpreadsheet');
-  document.getElementById('modalSpreadsheet').onclick=e=>{if(e.target.id==='modalSpreadsheet')closeModal('modalSpreadsheet');};
-  document.getElementById('btnTestConn').onclick=testConnection;
-  document.getElementById('btnSaveGasUrl').onclick=saveGasUrl;
-  document.getElementById('btnDisconnect').onclick=disconnect;
-  document.getElementById('btnMigrate').onclick=migrateLocal;
   document.getElementById('btnSync').onclick=syncNow;
   document.getElementById('btnExportCSV').onclick=exportCSV;
 }
