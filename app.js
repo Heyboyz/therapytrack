@@ -45,21 +45,21 @@ function toKey(d){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2
 function isHoliday(d){return HOLIDAYS.has(toKey(d));}
 function isWork(d){return WORK_DAYS.includes(d.getDay()) && !isHoliday(d);}
 
-// Periode: tgl 21 bulan lalu s/d tgl 20 bulan ini
+// Periode: tgl 26 bulan lalu s/d tgl 25 bulan ini
 function getPeriodDates(year, month){
   const dates=[];
   const pm=month===0?11:month-1;
   const py=month===0?year-1:year;
   const daysInPrev=new Date(py,pm+1,0).getDate();
-  for(let d=21;d<=daysInPrev;d++) dates.push(new Date(py,pm,d));
-  for(let d=1;d<=20;d++) dates.push(new Date(year,month,d));
+  for(let d=26;d<=daysInPrev;d++) dates.push(new Date(py,pm,d));
+  for(let d=1;d<=25;d++) dates.push(new Date(year,month,d));
   return dates;
 }
 
 function periodLabel(year,month){
   const pm=month===0?11:month-1;
   const py=month===0?year-1:year;
-  return `21 ${MONTH_NAMES[pm]} ${py} – 20 ${MONTH_NAMES[month]} ${year}`;
+  return `26 ${MONTH_NAMES[pm]} ${py} – 25 ${MONTH_NAMES[month]} ${year}`;
 }
 function avatarStyle(i){const c=COLORS[i%COLORS.length];return `background:linear-gradient(135deg,${c[0]},${c[1]});color:white`;}
 function avatarColor(i){return COLORS[i%COLORS.length][0];}
