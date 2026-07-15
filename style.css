@@ -678,6 +678,67 @@ body {
 .migrate-box strong { font-size: 0.85rem; color: var(--text2); }
 .migrate-box .btn { flex-shrink: 0; margin-left: auto; }
 
+/* ===== CUTI TAB ===== */
+.cuti-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 18px;
+  padding: 16px 20px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.cuti-period-label {
+  font-size: 0.85rem;
+  color: var(--text2);
+}
+.cuti-period-label strong { color: var(--text); }
+.cuti-total-badge {
+  background: linear-gradient(135deg, rgba(108,99,255,0.18), rgba(0,212,170,0.14));
+  border: 1px solid rgba(108,99,255,0.3);
+  border-radius: 20px;
+  padding: 6px 16px;
+  font-size: 0.85rem;
+  color: var(--text2);
+}
+.cuti-total-badge strong { color: var(--primary); font-size: 1rem; }
+
+.cuti-summary-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 24px;
+}
+.cuti-summary-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 8px 14px;
+}
+.cuti-avatar {
+  width: 28px; height: 28px;
+  border-radius: 8px;
+  font-size: 0.7rem; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.cuti-name { font-size: 0.82rem; color: var(--text2); font-weight: 500; }
+.cuti-days-badge {
+  background: rgba(108,99,255,0.18);
+  color: var(--primary);
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 8px;
+  margin-left: 4px;
+}
+
 /* ===== RESPONSIVE — MOBILE ===== */
 @media (max-width: 640px) {
   /* --- Header --- */
