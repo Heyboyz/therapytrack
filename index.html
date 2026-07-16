@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Sistem Pencatat Pasien Terapis</title>
-  <meta name="description" content="Sistem pencatatan jumlah pasien harian dan bulanan untuk masing-masing terapis, dengan jadwal kerja Selasa–Sabtu." />
+  <title>TherapyTrack — Sistem Klinik Terapis</title>
+  <meta name="description" content="Sistem manajemen klinik terapis: pencatatan pasien harian, rekap bulanan, cuti, dan kas terapis." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet" />
@@ -30,7 +30,7 @@
         </div>
         <div>
           <h1 class="brand-title">TherapyTrack</h1>
-          <p class="brand-sub">Sistem Pencatat Pasien Terapis</p>
+          <p class="brand-sub">Sistem Manajemen Klinik</p>
         </div>
       </div>
       <div class="header-actions">
@@ -42,7 +42,6 @@
         <button class="btn btn-ghost btn-icon" id="btnSync" title="Sinkronisasi data">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
         </button>
-
         <button class="btn btn-ghost" id="btnManageTherapists" title="Kelola Terapis">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
           <span>Terapis</span>
@@ -51,93 +50,140 @@
     </div>
   </header>
 
+  <!-- App Navigation (Super App Switcher) -->
+  <nav class="app-nav">
+    <div class="container app-nav-inner">
+      <button class="app-nav-btn active" data-app="pasien" id="appBtnPasien">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+        <span>Pasien</span>
+      </button>
+      <button class="app-nav-btn" data-app="kas" id="appBtnKas">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+        <span>Kas Terapis</span>
+      </button>
+    </div>
+  </nav>
+
   <!-- Main Content -->
   <main class="main-content">
     <div class="container">
 
-      <!-- Month Navigator -->
-      <section class="month-nav-section">
-        <div class="month-nav-card">
-          <button class="month-nav-btn" id="btnPrevMonth">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
-          </button>
-          <div class="month-display">
-            <span class="month-label" id="monthLabel"></span>
-            <span class="month-sub">Jadwal Kerja: Selasa – Sabtu</span>
-          </div>
-          <button class="month-nav-btn" id="btnNextMonth">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
-          </button>
-        </div>
-      </section>
+      <!-- ====== APP: PASIEN ====== -->
+      <div id="appPasien" class="app-page active">
 
-      <!-- Stats -->
-      <section class="stats-section" id="statsSection"></section>
-
-      <!-- Tab Navigation -->
-      <div class="tab-nav">
-        <button class="tab-btn active" id="tabDaily" data-tab="daily">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-          <span>Input Harian</span>
-        </button>
-        <button class="tab-btn" id="tabMonthly" data-tab="monthly">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-          <span>Rekap Bulanan</span>
-        </button>
-        <button class="tab-btn" id="tabCalendar" data-tab="calendar">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-          <span>Kalender</span>
-        </button>
-        <button class="tab-btn" id="tabCuti" data-tab="cuti">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="14" x2="8" y2="14"/><line x1="8" y1="18" x2="12" y2="18"/></svg>
-          <span>Cuti</span>
-        </button>
-      </div>
-
-      <!-- Tab: Daily -->
-      <section class="tab-panel active" id="panelDaily">
-        <div class="daily-header">
-          <div class="date-picker-group">
-            <label class="form-label">Pilih Tanggal</label>
-            <input type="date" id="dailyDatePicker" class="date-input" />
-          </div>
-          <div id="dayStatusBadge" class="day-status-badge"></div>
-        </div>
-        <div id="dailyInputArea"></div>
-      </section>
-
-      <!-- Tab: Monthly -->
-      <section class="tab-panel" id="panelMonthly">
-        <div class="monthly-recap-header">
-          <h2 class="section-title">Rekap Bulanan <span id="recapMonthLabel"></span></h2>
-          <div style="display:flex;gap:8px">
-            <a class="btn btn-outline btn-sm" id="btnOpenSheet"
-               href="https://docs.google.com/spreadsheets/d/19dMTEd95PFctMudJUcN8GtBtB65ndXKGWnoP8_uFDrE/edit?usp=sharing"
-               target="_blank" rel="noopener noreferrer">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-              Buka Sheets
-            </a>
-            <button class="btn btn-outline btn-sm" id="btnExportCSV">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-              Export CSV
+        <!-- Month Navigator -->
+        <section class="month-nav-section">
+          <div class="month-nav-card">
+            <button class="month-nav-btn" id="btnPrevMonth">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+            </button>
+            <div class="month-display">
+              <span class="month-label" id="monthLabel"></span>
+              <span class="month-sub">Jadwal Kerja: Selasa – Sabtu</span>
+            </div>
+            <button class="month-nav-btn" id="btnNextMonth">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
             </button>
           </div>
+        </section>
+
+        <!-- Stats -->
+        <section class="stats-section" id="statsSection"></section>
+
+        <!-- Tab Navigation -->
+        <div class="tab-nav">
+          <button class="tab-btn active" id="tabDaily" data-tab="daily">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            <span>Input Harian</span>
+          </button>
+          <button class="tab-btn" id="tabMonthly" data-tab="monthly">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+            <span>Rekap Bulanan</span>
+          </button>
+          <button class="tab-btn" id="tabCalendar" data-tab="calendar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+            <span>Kalender</span>
+          </button>
+          <button class="tab-btn" id="tabCuti" data-tab="cuti">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="14" x2="8" y2="14"/><line x1="8" y1="18" x2="12" y2="18"/></svg>
+            <span>Cuti</span>
+          </button>
         </div>
-        <div id="monthlyTable"></div>
-      </section>
 
-      <!-- Tab: Calendar -->
-      <section class="tab-panel" id="panelCalendar">
-        <div id="calendarGrid"></div>
-      </section>
+        <!-- Tab: Daily -->
+        <section class="tab-panel active" id="panelDaily">
+          <div class="daily-header">
+            <div class="date-picker-group">
+              <label class="form-label">Pilih Tanggal</label>
+              <input type="date" id="dailyDatePicker" class="date-input" />
+            </div>
+            <div id="dayStatusBadge" class="day-status-badge"></div>
+          </div>
+          <div id="dailyInputArea"></div>
+        </section>
 
-      <!-- Tab: Cuti -->
-      <section class="tab-panel" id="panelCuti">
-        <div id="cutiContent"></div>
-      </section>
+        <!-- Tab: Monthly -->
+        <section class="tab-panel" id="panelMonthly">
+          <div class="monthly-recap-header">
+            <h2 class="section-title">Rekap Bulanan <span id="recapMonthLabel"></span></h2>
+            <div style="display:flex;gap:8px">
+              <a class="btn btn-outline btn-sm" id="btnOpenSheet"
+                 href="https://docs.google.com/spreadsheets/d/19dMTEd95PFctMudJUcN8GtBtB65ndXKGWnoP8_uFDrE/edit?usp=sharing"
+                 target="_blank" rel="noopener noreferrer">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                Buka Sheets
+              </a>
+              <button class="btn btn-outline btn-sm" id="btnExportCSV">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Export CSV
+              </button>
+            </div>
+          </div>
+          <div id="monthlyTable"></div>
+        </section>
+
+        <!-- Tab: Calendar -->
+        <section class="tab-panel" id="panelCalendar">
+          <div id="calendarGrid"></div>
+        </section>
+
+        <!-- Tab: Cuti -->
+        <section class="tab-panel" id="panelCuti">
+          <div id="cutiContent"></div>
+        </section>
+
+      </div><!-- end #appPasien -->
+
+      <!-- ====== APP: KAS TERAPIS ====== -->
+      <div id="appKas" class="app-page">
+
+        <!-- Kas Month Navigator -->
+        <section class="month-nav-section">
+          <div class="month-nav-card">
+            <button class="month-nav-btn" id="btnKasPrevMonth">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+            </button>
+            <div class="month-display">
+              <span class="month-label" id="kasMonthLabel"></span>
+              <span class="month-sub" id="kasMonthSub"></span>
+            </div>
+            <button class="month-nav-btn" id="btnKasNextMonth">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+          </div>
+        </section>
+
+        <!-- Kas Stats -->
+        <section class="stats-section" id="kasStatsSection"></section>
+
+
+        <!-- Kas Rekap -->
+        <div id="kasContent"></div>
+
+      </div><!-- end #appKas -->
+
     </div>
   </main>
-
 
   <!-- Modal: Manage Therapists -->
   <div class="modal-overlay" id="modalTherapists">

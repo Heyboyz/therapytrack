@@ -739,6 +739,148 @@ body {
   margin-left: 4px;
 }
 
+/* ===== SUPER APP NAV ===== */
+.app-nav {
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 72px;
+  z-index: 90;
+}
+.app-nav-inner {
+  display: flex;
+  gap: 4px;
+  padding: 8px 0;
+}
+.app-nav-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 22px;
+  border-radius: 10px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text2);
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .2s;
+}
+.app-nav-btn svg { width: 16px; height: 16px; flex-shrink: 0; }
+.app-nav-btn:hover { background: var(--bg3); color: var(--text); }
+.app-nav-btn.active {
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  color: white;
+  border-color: transparent;
+  box-shadow: 0 4px 14px rgba(108,99,255,.35);
+}
+
+/* ===== APP PAGE SWITCHER ===== */
+.app-page { display: none; }
+.app-page.active { display: block; }
+
+/* ===== KAS FEATURE ===== */
+.kas-recap-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+.kas-tarif-section {
+  margin-bottom: 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.kas-tarif-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 14px 18px;
+  background: var(--bg2);
+  border: none;
+  color: var(--text);
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+  transition: background .2s;
+}
+.kas-tarif-toggle:hover { background: var(--bg3); }
+.kas-tarif-toggle svg:first-child { width: 16px; height: 16px; color: var(--primary); }
+.toggle-arrow { width: 16px; height: 16px; margin-left: auto; transition: transform .25s; flex-shrink: 0; }
+.kas-tarif-panel {
+  padding: 16px 18px;
+  border-top: 1px solid var(--border);
+  background: var(--bg);
+}
+.kas-tarif-desc {
+  font-size: 0.82rem;
+  color: var(--text3);
+  margin-bottom: 14px;
+  line-height: 1.5;
+}
+.tarif-input-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 12px;
+}
+.tarif-input-item {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px;
+}
+.kas-table th:last-child,
+.kas-table td:last-child { text-align: right; }
+.kas-table th:nth-child(n+2):nth-child(-n+5),
+.kas-table td:nth-child(n+2):nth-child(-n+5) { text-align: center; }
+.kas-adj-input {
+  width: 90px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 0.82rem;
+  padding: 6px 8px;
+  text-align: center;
+}
+.kas-adj-input:focus { outline: none; border-color: var(--primary); }
+
+/* ===== KAS VOLUNTARY STYLES ===== */
+.kas-input-section {
+  margin-bottom: 28px;
+}
+.kas-input-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 16px;
+}
+.kas-amount-display {
+  text-align: center;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--secondary);
+  margin: 4px 0 8px;
+  min-height: 1.2em;
+}
+.kas-amount-input {
+  font-size: 0.9rem !important;
+  text-align: center;
+}
+.saldo-card {
+  border: 1px solid rgba(0, 212, 170, 0.3);
+  background: linear-gradient(135deg, rgba(0,212,170,0.08), rgba(108,99,255,0.06));
+}
+.kas-recap-section {
+  margin-top: 8px;
+}
+
+
 /* ===== RESPONSIVE — MOBILE ===== */
 @media (max-width: 640px) {
   /* --- Header --- */

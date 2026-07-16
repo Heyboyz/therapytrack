@@ -39,6 +39,8 @@ const HOLIDAYS=new Set([
 ]);
 
 let currentYear, currentMonth, data={}, therapists=[];
+let kasYear, kasMonth; // separate month state for Kas page
+let currentApp='pasien'; // 'pasien' | 'kas'
 const gasUrl=GAS_URL;
 
 function toKey(d){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
@@ -62,6 +64,7 @@ function periodLabel(year,month){
   return `26 ${MONTH_NAMES[pm]} ${py} – 25 ${MONTH_NAMES[month]} ${year}`;
 }
 function getCutiKey(year,month){return `cuti-${year}-${String(month+1).padStart(2,'0')}`;}
+function getKasKey(year,month){return `kas-${year}-${String(month+1).padStart(2,'0')}`;}
 function avatarStyle(i){const c=COLORS[i%COLORS.length];return `background:linear-gradient(135deg,${c[0]},${c[1]});color:white`;}
 function avatarColor(i){return COLORS[i%COLORS.length][0];}
 function initials(n){return n.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);}
@@ -103,6 +106,7 @@ function setSyncUI(state,label){
 async function init(){
   const now=new Date();
   currentYear=now.getFullYear(); currentMonth=now.getMonth();
+  kasYear=now.getFullYear(); kasMonth=now.getMonth();
   document.getElementById('currentDateBadge').textContent=`${DAY_FULL[now.getDay()]}, ${now.getDate()} ${MONTH_NAMES[now.getMonth()]} ${now.getFullYear()}`;
   setupEventListeners();
   setSyncUI('syncing','Memuat...');
@@ -409,6 +413,167 @@ async function saveCutiEntry(name,i){
   renderCutiTab(); renderStats();
 }
 
+// ===== FITUR KAS TERAPIS (Setoran Sukarela) =====
+function formatRupiah(n){return 'Rp '+Number(n||0).toLocaleString('id-ID');}
+
+function calcSaldo(){
+  // Sum semua entri kas-YYYY-MM di seluruh data
+  return Object.entries(data)
+    .filter(([k])=>k.startsWith('kas-'))
+    .reduce((total,[,rec])=>{
+      return total+Object.values(rec).reduce((s,v)=>s+(v||0),0);
+    },0);
+}
+
+function renderKasPage(){
+  const el=document.getElementById('kasContent');
+  document.getElementById('kasMonthLabel').textContent=`${MONTH_NAMES[kasMonth]} ${kasYear}`;
+  document.getElementById('kasMonthSub').textContent=`Periode: ${periodLabel(kasYear,kasMonth)}`;
+  if(!therapists.length){
+    el.innerHTML='<div class="empty-state"><h3>Belum ada terapis</h3><p>Tambahkan terapis melalui menu Terapis</p></div>';
+    renderKasStats(0,0); return;
+  }
+  const kasRec=data[getKasKey(kasYear,kasMonth)]||{};
+  const totalBulanIni=Object.values(kasRec).reduce((s,v)=>s+(v||0),0);
+  const saldo=calcSaldo();
+
+  el.innerHTML=`
+    <!-- Input Setoran -->
+    <div class="kas-input-section">
+      <h3 class="kas-input-title">💰 Input Setoran — ${MONTH_NAMES[kasMonth]} ${kasYear}</h3>
+      <div class="therapist-input-grid">
+        ${therapists.map((name,i)=>{
+          const amount=kasRec[name]||0;
+          const saved=kasRec[name]!==undefined;
+          return `<div class="therapist-input-card">
+            <div class="therapist-card-header">
+              <div class="therapist-avatar" style="${avatarStyle(i)}">${initials(name)}</div>
+              <div><div class="therapist-name">${name}</div><div class="therapist-role">Terapis</div></div>
+            </div>
+            <div class="patient-counter">
+              <button class="counter-btn minus" onclick="changeKas('${name}',-1000,${i})">−</button>
+              <div class="counter-display">
+                <input class="counter-manual kas-amount-input" type="number" min="0" step="1000" id="kas-inp-${i}" value="${amount}" oninput="markKasUnsaved(${i})"/>
+                <div class="counter-label">Rp setoran</div>
+              </div>
+              <button class="counter-btn plus" onclick="changeKas('${name}',1000,${i})">+</button>
+            </div>
+            <div class="kas-amount-display">${formatRupiah(amount)}</div>
+            <button class="save-btn ${saved&&amount>0?'saved':''}" id="kas-sbtn-${i}" onclick="saveKasEntry('${name}',${i})">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              ${saved&&amount>0?'Tersimpan':'Simpan'}
+            </button>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>
+
+    <!-- Rekap Tabel -->
+    <div class="kas-recap-section">
+      <div class="kas-recap-header">
+        <h3 class="kas-input-title">📊 Rekap Kas — ${MONTH_NAMES[kasMonth]} ${kasYear}</h3>
+        <button class="btn btn-outline btn-sm" onclick="exportKasCSV()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Export CSV
+        </button>
+      </div>
+      <div class="table-wrapper">
+        <table class="data-table kas-table">
+          <thead><tr><th>Terapis</th><th style="text-align:right">Setoran</th></tr></thead>
+          <tbody>
+            ${therapists.map((t,i)=>{
+              const amt=kasRec[t]||0;
+              return `<tr>
+                <td><div style="display:flex;align-items:center;gap:8px">
+                  <div class="therapist-avatar" style="${avatarStyle(i)};width:28px;height:28px;font-size:.7rem;border-radius:8px;flex-shrink:0">${initials(t)}</div>
+                  <span style="font-weight:500">${t}</span>
+                </div></td>
+                <td style="text-align:right"><strong style="color:${amt>0?'var(--secondary)':'var(--text3)'}">${formatRupiah(amt)}</strong></td>
+              </tr>`;
+            }).join('')}
+            <tr class="total-row">
+              <td>TOTAL SETORAN</td>
+              <td style="text-align:right"><strong style="color:var(--secondary);font-size:1.05rem">${formatRupiah(totalBulanIni)}</strong></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>`;
+  renderKasStats(totalBulanIni,saldo);
+}
+
+function renderKasStats(totalBulanIni,saldo){
+  const el=document.getElementById('kasStatsSection');
+  if(!el) return;
+  el.innerHTML=`
+    <div class="stat-card"><div class="stat-icon teal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg></div><div><div class="stat-value" style="font-size:1.1rem">${formatRupiah(totalBulanIni)}</div><div class="stat-label">Kas Bulan Ini</div></div></div>
+    <div class="stat-card saldo-card"><div class="stat-icon gold"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div><div><div class="stat-value" style="font-size:1.1rem;color:var(--secondary)">${formatRupiah(saldo)}</div><div class="stat-label">Saldo Total Kumulatif</div></div></div>
+    <div class="stat-card"><div class="stat-icon purple"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div><div><div class="stat-value">${therapists.length}</div><div class="stat-label">Terapis Aktif</div></div></div>
+    <div class="stat-card"><div class="stat-icon pink"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div><div><div class="stat-value">${Object.keys(data).filter(k=>k.startsWith('kas-')).length}</div><div class="stat-label">Bulan Tercatat</div></div></div>`;
+}
+
+function changeKas(name,delta,i){
+  const inp=document.getElementById(`kas-inp-${i}`);
+  const newVal=Math.max(0,(parseInt(inp.value)||0)+delta);
+  inp.value=newVal;
+  // Update display
+  const disp=inp.closest('.therapist-input-card').querySelector('.kas-amount-display');
+  if(disp) disp.textContent=formatRupiah(newVal);
+  markKasUnsaved(i);
+}
+function markKasUnsaved(i){
+  const b=document.getElementById(`kas-sbtn-${i}`);
+  const inp=document.getElementById(`kas-inp-${i}`);
+  if(b){b.className='save-btn';b.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Simpan';}
+  if(inp){
+    const disp=inp.closest('.therapist-input-card').querySelector('.kas-amount-display');
+    if(disp) disp.textContent=formatRupiah(parseInt(inp.value)||0);
+  }
+}
+async function saveKasEntry(name,i){
+  const btn=document.getElementById(`kas-sbtn-${i}`);
+  const amount=Math.max(0,parseInt(document.getElementById(`kas-inp-${i}`).value)||0);
+  const key=getKasKey(kasYear,kasMonth);
+  if(!data[key]) data[key]={};
+  data[key][name]=amount;
+  btn.textContent='Menyimpan...'; btn.disabled=true;
+  if(gasUrl){
+    try{ await gasGet({action:'saveEntry',date:key,therapist:name,count:amount}); }
+    catch(e){ showToast('Gagal simpan ke Sheets: '+e.message,'error'); }
+  }
+  cacheLocal();
+  btn.disabled=false; btn.className='save-btn saved';
+  btn.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Tersimpan';
+  showToast(`Setoran ${name}: ${formatRupiah(amount)} tersimpan`,'success');
+  renderKasPage();
+}
+
+function exportKasCSV(){
+  const kasRec=data[getKasKey(kasYear,kasMonth)]||{};
+  const saldo=calcSaldo();
+  const rows=[['Kas Terapis - '+MONTH_NAMES[kasMonth]+' '+kasYear],['Periode',periodLabel(kasYear,kasMonth)],[''],
+    ['Terapis','Setoran']];
+  let total=0;
+  therapists.forEach(t=>{
+    const amt=kasRec[t]||0; total+=amt;
+    rows.push([t,amt]);
+  });
+  rows.push(['TOTAL SETORAN BULAN INI',total],[''],['SALDO KUMULATIF',saldo]);
+  const csv=rows.map(r=>r.map(c=>`"${c}"`).join(',')).join('\n');
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'}));
+  a.download=`kas_${MONTH_NAMES[kasMonth]}_${kasYear}.csv`;
+  a.click(); showToast('CSV Kas diunduh','success');
+}
+
+function switchApp(app){
+  currentApp=app;
+  document.querySelectorAll('.app-nav-btn').forEach(b=>b.classList.toggle('active',b.dataset.app===app));
+  document.getElementById('appPasien').classList.toggle('active',app==='pasien');
+  document.getElementById('appKas').classList.toggle('active',app==='kas');
+  if(app==='kas') renderKasPage();
+}
+
 function exportCSV(){
   const dates=getPeriodDates(currentYear,currentMonth);
   const rows=[['Periode',periodLabel(currentYear,currentMonth)],[''],['Tanggal','Hari',...therapists,'Total']];
@@ -444,6 +609,9 @@ function closeModal(id){document.getElementById(id).classList.remove('open');}
 function setupEventListeners(){
   document.getElementById('btnPrevMonth').onclick=()=>{currentMonth--;if(currentMonth<0){currentMonth=11;currentYear--;}renderAll();};
   document.getElementById('btnNextMonth').onclick=()=>{currentMonth++;if(currentMonth>11){currentMonth=0;currentYear++;}renderAll();};
+  document.getElementById('btnKasPrevMonth').onclick=()=>{kasMonth--;if(kasMonth<0){kasMonth=11;kasYear--;}renderKasPage();};
+  document.getElementById('btnKasNextMonth').onclick=()=>{kasMonth++;if(kasMonth>11){kasMonth=0;kasYear++;}renderKasPage();};
+  document.querySelectorAll('.app-nav-btn').forEach(btn=>btn.addEventListener('click',()=>switchApp(btn.dataset.app)));
   document.querySelectorAll('.tab-btn').forEach(btn=>btn.addEventListener('click',()=>{
     document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
     document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
