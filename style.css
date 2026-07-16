@@ -739,6 +739,68 @@ body {
   margin-left: 4px;
 }
 
+/* Cuti - new date-based styles */
+.cuti-add-form {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  margin-bottom: 20px;
+}
+.cuti-form-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 14px;
+}
+.cuti-form-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.cuti-select { min-width: 160px; flex: 1; }
+.cuti-form-row .date-input { flex: 1; min-width: 150px; }
+.cuti-form-row .btn { flex-shrink: 0; }
+.cuti-dates-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 4px 0;
+}
+.cuti-date-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(108,99,255,0.15);
+  border: 1px solid rgba(108,99,255,0.3);
+  color: var(--primary);
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all .15s;
+  user-select: none;
+}
+.cuti-date-chip:hover {
+  background: rgba(255,80,80,0.18);
+  border-color: rgba(255,80,80,0.4);
+  color: #ff5050;
+}
+.chip-remove {
+  font-size: 0.85rem;
+  opacity: 0.6;
+  line-height: 1;
+}
+.cuti-date-chip:hover .chip-remove { opacity: 1; }
+.cuti-no-date {
+  font-size: 0.8rem;
+  color: var(--text3);
+  font-style: italic;
+}
+.cuti-table td { vertical-align: middle; }
+
 /* ===== SUPER APP NAV ===== */
 .app-nav {
   background: var(--bg2);

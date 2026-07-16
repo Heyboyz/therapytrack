@@ -1,4 +1,4 @@
-const LOCAL_DATA_KEY='therapytrack_data';
+﻿const LOCAL_DATA_KEY='therapytrack_data';
 const LOCAL_THER_KEY='therapytrack_therapists';
 const GAS_URL='https://script.google.com/macros/s/AKfycbyZUChUcr33Ridb-YW6GW9XEAW8fGcDw-pgY14sDHhVglvdWnC-RIxAPbJHk8-kyLw7/exec';
 const MONTH_NAMES=['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
@@ -339,80 +339,121 @@ async function syncNow(){
 }
 
 // ===== FITUR CUTI =====
+function getCutiDatesForPeriod(year,month){
+  const periodDates=getPeriodDates(year,month).map(dt=>toKey(dt));
+  const periodSet=new Set(periodDates);
+  const result={};
+  therapists.forEach(t=>result[t]=[]);
+  Object.entries(data).forEach(([key,rec])=>{
+    if(!key.startsWith('cuti_d-')) return;
+    const dateStr=key.slice(7);
+    if(!periodSet.has(dateStr)) return;
+    Object.entries(rec).forEach(([t,val])=>{
+      if(val&&val>0&&therapists.includes(t)){
+        if(!result[t]) result[t]=[];
+        result[t].push(dateStr);
+      }
+    });
+  });
+  Object.keys(result).forEach(t=>result[t].sort());
+  return result;
+}
+
 function renderCutiTab(){
-  const key=getCutiKey(currentYear,currentMonth);
-  const cutiRec=data[key]||{};
-  const pLabel=periodLabel(currentYear,currentMonth);
   const el=document.getElementById('cutiContent');
   if(!therapists.length){
     el.innerHTML='<div class="empty-state"><h3>Belum ada terapis</h3><p>Tambahkan terapis melalui menu Terapis</p></div>';
     return;
   }
-  const totalCuti=therapists.reduce((s,t)=>s+(cutiRec[t]||0),0);
-  // Build per-therapist summary row
-  const summaryItems=therapists.map((t,i)=>{
-    const d=cutiRec[t]||0;
-    return `<div class="cuti-summary-item"><span class="cuti-avatar" style="${avatarStyle(i)}">${initials(t)}</span><span class="cuti-name">${t}</span><span class="cuti-days-badge">${d} hr</span></div>`;
-  }).join('');
+  const pLabel=periodLabel(currentYear,currentMonth);
+  const cutiMap=getCutiDatesForPeriod(currentYear,currentMonth);
+  const grandTotal=Object.values(cutiMap).reduce((s,arr)=>s+arr.length,0);
+  const periodDates=getPeriodDates(currentYear,currentMonth);
+  const minDate=toKey(periodDates[0]);
+  const maxDate=toKey(periodDates[periodDates.length-1]);
+  const todayStr=toKey(new Date());
+  const defaultDate=todayStr>=minDate&&todayStr<=maxDate?todayStr:minDate;
   el.innerHTML=`
     <div class="cuti-header">
-      <div class="cuti-period-label">📅 Periode: <strong>${pLabel}</strong></div>
-      <div class="cuti-total-badge">Total Cuti: <strong>${totalCuti} hari</strong></div>
+      <div class="cuti-period-label">\uD83D\uDCC5 Periode: <strong>${pLabel}</strong></div>
+      <div class="cuti-total-badge">Total Cuti: <strong>${grandTotal} hari</strong></div>
     </div>
-    <div class="cuti-summary-row">${summaryItems}</div>
-    <div class="therapist-input-grid">
-      ${therapists.map((name,i)=>{
-        const days=cutiRec[name]||0;
-        const saved=cutiRec[name]!==undefined;
-        return `<div class="therapist-input-card">
-          <div class="therapist-card-header">
-            <div class="therapist-avatar" style="${avatarStyle(i)}">${initials(name)}</div>
-            <div><div class="therapist-name">${name}</div><div class="therapist-role">Terapis</div></div>
-          </div>
-          <div class="patient-counter">
-            <button class="counter-btn minus" onclick="changeCuti('${name}',-1,${i})">−</button>
-            <div class="counter-display">
-              <input class="counter-manual" type="number" min="0" max="30" id="cuti-inp-${i}" value="${days}" oninput="markCutiUnsaved(${i})"/>
-              <div class="counter-label">hari cuti</div>
-            </div>
-            <button class="counter-btn plus" onclick="changeCuti('${name}',1,${i})">+</button>
-          </div>
-          <button class="save-btn ${saved?'saved':''}" id="cuti-sbtn-${i}" onclick="saveCutiEntry('${name}',${i})">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-            ${saved?'Tersimpan':'Simpan'}
-          </button>
-        </div>`;
-      }).join('')}
+    <div class="cuti-add-form">
+      <h3 class="cuti-form-title">\u2795 Tambah Tanggal Cuti</h3>
+      <div class="cuti-form-row">
+        <select id="cutiTherapistSelect" class="text-input cuti-select">
+          <option value="">\u2014 Pilih Terapis \u2014</option>
+          ${therapists.map(t=>`<option value="${t}">${t}</option>`).join('')}
+        </select>
+        <input type="date" id="cutiDateInput" class="date-input" value="${defaultDate}" min="${minDate}" max="${maxDate}" />
+        <button class="btn btn-primary" id="btnAddCuti" onclick="addCutiDate()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Tambah
+        </button>
+      </div>
+    </div>
+    <div class="table-wrapper">
+      <table class="data-table cuti-table">
+        <thead><tr>
+          <th>Terapis</th><th>Tanggal Cuti</th><th style="text-align:center;width:72px">Total</th>
+        </tr></thead>
+        <tbody>
+          ${therapists.map((t,i)=>{
+            const dates=cutiMap[t]||[];
+            const chips=dates.map(d=>{
+              const dt=new Date(d+'T00:00:00');
+              const lbl=`${dt.getDate()} ${MONTH_NAMES[dt.getMonth()].slice(0,3)}`;
+              return `<span class="cuti-date-chip" title="Klik untuk hapus" onclick="removeCutiDate('${t}','${d}','${lbl}')">${lbl}<span class="chip-remove">\u00D7</span></span>`;
+            }).join('');
+            return `<tr>
+              <td><div style="display:flex;align-items:center;gap:8px">
+                <div class="therapist-avatar" style="${avatarStyle(i)};width:28px;height:28px;font-size:.7rem;border-radius:8px;flex-shrink:0">${initials(t)}</div>
+                <span style="font-weight:500">${t}</span>
+              </div></td>
+              <td><div class="cuti-dates-row">${chips||'<span class="cuti-no-date">Tidak ada cuti</span>'}</div></td>
+              <td style="text-align:center"><span class="badge-count" style="${dates.length>0?'':'opacity:.35'}">${dates.length}</span></td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
     </div>`;
 }
 
-function changeCuti(name,delta,i){
-  const inp=document.getElementById(`cuti-inp-${i}`);
-  inp.value=Math.max(0,(parseInt(inp.value)||0)+delta);
-  markCutiUnsaved(i);
-}
-function markCutiUnsaved(i){
-  const b=document.getElementById(`cuti-sbtn-${i}`);
-  if(b){b.className='save-btn';b.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Simpan';}
-}
-async function saveCutiEntry(name,i){
-  const btn=document.getElementById(`cuti-sbtn-${i}`);
-  const days=Math.max(0,parseInt(document.getElementById(`cuti-inp-${i}`).value)||0);
-  const key=getCutiKey(currentYear,currentMonth);
+async function addCutiDate(){
+  const therapist=document.getElementById('cutiTherapistSelect').value;
+  const dateStr=document.getElementById('cutiDateInput').value;
+  if(!therapist){showToast('Pilih terapis terlebih dahulu','error');return;}
+  if(!dateStr){showToast('Pilih tanggal terlebih dahulu','error');return;}
+  const key=`cuti_d-${dateStr}`;
   if(!data[key]) data[key]={};
-  data[key][name]=days;
-  btn.textContent='Menyimpan...'; btn.disabled=true;
+  if(data[key][therapist]&&data[key][therapist]>0){showToast(`${therapist} sudah tercatat cuti tanggal ini`,'error');return;}
+  data[key][therapist]=1;
+  const btn=document.getElementById('btnAddCuti');
+  btn.disabled=true; btn.textContent='Menyimpan...';
   if(gasUrl){
-    try{ await gasGet({action:'saveEntry',date:key,therapist:name,count:days}); }
-    catch(e){ showToast('Gagal simpan ke Sheets: '+e.message,'error'); }
+    try{ await gasGet({action:'saveEntry',date:key,therapist,count:1}); }
+    catch(e){ showToast('Gagal simpan ke Sheets','error'); }
   }
   cacheLocal();
-  btn.disabled=false; btn.className='save-btn saved';
-  btn.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Tersimpan';
-  showToast(`Cuti ${name}: ${days} hari tersimpan`,'success');
+  btn.disabled=false;
+  btn.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Tambah';
+  const dt=new Date(dateStr+'T00:00:00');
+  showToast(`Cuti ${therapist}: ${dt.getDate()} ${MONTH_NAMES[dt.getMonth()]} ${dt.getFullYear()} ditambahkan`,'success');
   renderCutiTab(); renderStats();
 }
 
+async function removeCutiDate(therapist,dateStr,label){
+  if(!confirm(`Hapus cuti ${therapist} tanggal ${label}?`)) return;
+  const key=`cuti_d-${dateStr}`;
+  if(data[key]) data[key][therapist]=0;
+  if(gasUrl){
+    try{ await gasGet({action:'saveEntry',date:key,therapist,count:0}); }
+    catch(e){ showToast('Gagal hapus dari Sheets','error'); }
+  }
+  cacheLocal();
+  showToast(`Cuti ${therapist} tanggal ${label} dihapus`,'success');
+  renderCutiTab(); renderStats();
+}
 // ===== FITUR KAS TERAPIS (Setoran Sukarela) =====
 function formatRupiah(n){return 'Rp '+Number(n||0).toLocaleString('id-ID');}
 
