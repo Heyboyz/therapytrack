@@ -55,16 +55,93 @@ function getOrCreateSheet(name, headers) {
   return sheet;
 }
 
+// FORMAT DATE KEY: Mengonversi tanggal ke format YYYY-MM-DD,
+// namun mempertahankan key khusus (seperti cuti_d-..., kas-..., kas_tarif, dll.) agar tidak rusak.
 function formatDateKey(val) {
-  if (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(val)) return val;
-  var d = new Date(val);
-  return d.getFullYear() + '-' +
-    String(d.getMonth() + 1).padStart(2, '0') + '-' +
-    String(d.getDate()).padStart(2, '0');
+  if (!val) return '';
+  
+  // Jika sudah merupakan objek Date, format ke YYYY-MM-DD menggunakan timezone script agar tidak bergeser hari
+  if (val instanceof Date) {
+    try {
+      return Utilities.formatDate(val, Session.getScriptTimeZone(), "yyyy-MM-dd");
+    } catch(e) {
+      return val.getFullYear() + '-' +
+        String(val.getMonth() + 1).padStart(2, '0') + '-' +
+        String(val.getDate()).padStart(2, '0');
+    }
+  }
+  
+  var str = String(val).trim();
+  
+  // Jika sudah berformat YYYY-MM-DD, langsung kembalikan
+  if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+    return str;
+  }
+  
+  // Jika ini adalah key khusus (cuti atau kas), langsung kembalikan as-is
+  if (/^(cuti|kas)/i.test(str)) {
+    return str;
+  }
+  
+  // Coba parse ke Date jika memungkinkan
+  var d = new Date(str);
+  if (!isNaN(d.getTime())) {
+    try {
+      return Utilities.formatDate(d, Session.getScriptTimeZone(), "yyyy-MM-dd");
+    } catch(e) {
+      return d.getFullYear() + '-' +
+        String(d.getMonth() + 1).padStart(2, '0') + '-' +
+        String(d.getDate()).padStart(2, '0');
+    }
+  }
+  
+  return str;
+}
+
+// DEDUPLIKASI: Membersihkan data duplikat pada sheet secara otomatis
+// dengan mempertahankan baris paling baru (paling bawah).
+function cleanDuplicates() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName(DATA_SHEET);
+  if (!sheet) return;
+  var last = sheet.getLastRow();
+  if (last < 2) return;
+  
+  var range = sheet.getRange(2, 1, last - 1, 4);
+  var values = range.getValues();
+  var seen = {};
+  var rowsToDelete = [];
+  
+  // Scan dari bawah ke atas agar indeks baris saat didelete tidak bergeser
+  for (var i = values.length - 1; i >= 0; i--) {
+    var date = values[i][0];
+    var therapist = values[i][1];
+    if (!date || !therapist) continue;
+    
+    var key = formatDateKey(date) + '|||' + therapist;
+    if (seen[key]) {
+      rowsToDelete.push(i + 2); // Baris di sheet adalah index i + 2
+    } else {
+      seen[key] = true;
+    }
+  }
+  
+  if (rowsToDelete.length > 0) {
+    rowsToDelete.forEach(function(rowNum) {
+      sheet.deleteRow(rowNum);
+    });
+  }
 }
 
 // ── Read all patient data ──
 function getAllData() {
+  // Jalankan pembersihan duplikat terlebih dahulu
+  try {
+    cleanDuplicates();
+  } catch (e) {
+    // Abaikan jika gagal agar tidak menghentikan loading data
+  }
+
   var sheet = getOrCreateSheet(DATA_SHEET,
     ['Tanggal', 'Terapis', 'Jumlah Pasien', 'Diperbarui']);
   var last = sheet.getLastRow();
