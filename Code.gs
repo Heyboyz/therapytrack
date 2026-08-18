@@ -135,12 +135,8 @@ function cleanDuplicates() {
 
 // ── Read all patient data ──
 function getAllData() {
-  // Jalankan pembersihan duplikat terlebih dahulu
-  try {
-    cleanDuplicates();
-  } catch (e) {
-    // Abaikan jika gagal agar tidak menghentikan loading data
-  }
+  // Pembersihan duplikat otomatis dimatikan untuk mempercepat waktu muat (loading)
+  // try { cleanDuplicates(); } catch (e) {}
 
   var sheet = getOrCreateSheet(DATA_SHEET,
     ['Tanggal', 'Terapis', 'Jumlah Pasien', 'Diperbarui']);
@@ -182,7 +178,8 @@ function saveEntry(params) {
 
   if (last >= 2) {
     var rows = sheet.getRange(2, 1, last - 1, 2).getValues();
-    for (var i = 0; i < rows.length; i++) {
+    // OPTIMASI: Cari dari bawah ke atas karena data terbaru pasti ada di bawah
+    for (var i = rows.length - 1; i >= 0; i--) {
       if (formatDateKey(rows[i][0]) === date && rows[i][1] === therapist) {
         sheet.getRange(i + 2, 3, 1, 2).setValues([[count, now]]);
         return 'updated';
