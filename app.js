@@ -1,4 +1,4 @@
-﻿const LOCAL_DATA_KEY='therapytrack_data';
+const LOCAL_DATA_KEY='therapytrack_data';
 const LOCAL_THER_KEY='therapytrack_therapists';
 const GAS_URL='https://script.google.com/macros/s/AKfycbyZUChUcr33Ridb-YW6GW9XEAW8fGcDw-pgY14sDHhVglvdWnC-RIxAPbJHk8-kyLw7/exec';
 const MONTH_NAMES=['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
@@ -31,7 +31,6 @@ const HOLIDAYS=new Set([
   // Juni
   '2026-06-16', // Tahun Baru Islam 1448 H
   // Agustus
-  '2026-08-18', // Cuti Bersama Kemerdekaan RI
   '2026-08-25', // Maulid Nabi Muhammad SAW
   // Desember
   '2026-12-25', // Hari Raya Natal
